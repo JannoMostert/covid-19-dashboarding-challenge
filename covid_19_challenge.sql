@@ -4,7 +4,9 @@ WITH
       SELECT
         a.geo_id,
         c.state_name,
+        b.state_fips_code,
         b.county_name,
+        b.county_fips_code,
         b.lsad_name,
         b.county_geom,
         a.total_pop,
@@ -22,12 +24,14 @@ WITH
         INNER JOIN `bigquery-public-data.geo_us_boundaries.counties` AS b
       ON a.geo_id = b.geo_id
         INNER JOIN `bigquery-public-data.geo_us_boundaries.states` AS c
-        ON b.state_fips_code = C.state_fips_code
+        ON b.state_fips_code = c.state_fips_code
       WHERE b.county_name = 'Kings' --Selecting Kings County
   )
 SELECT
   state_name,
+  state_fips_code,
   county_name,
+  county_fips_code,
   county_geom,
   total_pop                         AS county_population,
   median_age,
@@ -35,5 +39,4 @@ SELECT
   (elderly_females + elderly_males) AS county_elderly_population
 FROM
   county_population_analysis
-LIMIT 1000
 ;
