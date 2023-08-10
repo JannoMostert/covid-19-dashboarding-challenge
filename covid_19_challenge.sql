@@ -115,6 +115,21 @@ WITH
       
       FROM
         aggregate_cases AS a
+  ),
+  complete_county_med_info AS
+    (
+      SELECT
+        a.state_name,
+        a.county_fips_code,
+        a.county_name,
+        a.total_hospital_beds,
+        a.num_airborne_infection_isolation_rooms,
+        b.registered_nurses_ft AS registered_nurses,
+      FROM
+        `bigquery-public-data.covid19_aha.hospital_beds` AS a
+        INNER JOIN `bigquery-public-data.covid19_aha.staffing` AS b
+      ON a.county_fips_code = b.county_fips_code
+      WHERE a.county_fips_code = '36047'
   )
 SELECT
   a.reporting_month,
@@ -136,10 +151,16 @@ SELECT
   b.median_income,
   b.county_elderly_population,
 
+  c.total_hospital_beds,
+  c.registered_nurses,
+  c.num_airborne_infection_isolation_rooms
+
 FROM
   complete_county_case_info AS a
   INNER JOIN complete_county_pop_info AS b
              ON a.county_fips_code = b.county_fips_code
+  INNER JOIN complete_county_med_info AS c
+    ON a.county_fips_code = c.county_fips_code
 WHERE a.reporting_month > '2020-03-31'
 ORDER BY
   reporting_month DESC
