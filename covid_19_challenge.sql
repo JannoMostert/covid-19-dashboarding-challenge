@@ -60,8 +60,11 @@ WITH
         confirmed_cases,
         deaths,
         
-        ROW_NUMBER() OVER (PARTITION BY county_fips_code
-          ORDER BY date DESC) AS rn
+        /* Previous day cases and deaths */
+        LAG(confirmed_cases) OVER (PARTITION BY county_fips_code
+          ORDER BY date ) AS lag_1d_confirmed_cases,
+        LAG(deaths) OVER (PARTITION BY county_fips_code
+          ORDER BY date ) AS lag_1d_deaths
       
       FROM
         `bigquery-public-data.covid19_usafacts.summary`
@@ -82,15 +85,11 @@ WITH
         MAX(a.deaths)                              AS cumulative_deaths,
         
         /* New case and death calculation */
-        SUM(a.confirmed_cases - b.confirmed_cases) AS new_monthly_cases,
-        SUM(a.deaths - b.deaths)                   AS new_monthly_deaths
+        SUM(a.confirmed_cases - a.lag_1d_confirmed_cases) AS new_monthly_cases,
+        SUM(a.deaths - a.lag_1d_deaths)                   AS new_monthly_deaths
       
       FROM
         latest_record_month AS a
-        /* Determine new daily cases by joining previous day onto current day */
-        INNER JOIN latest_record_month AS b
-                   ON a.rn = (b.rn - 1)
-                      AND a.county_fips_code = b.county_fips_code
       GROUP BY
         1,
         2,
@@ -108,14 +107,18 @@ WITH
         a.state_fips_code,
         a.cumulative_cases,
         a.cumulative_deaths,
-        a.new_monthly_cases,
-        a.new_monthly_deaths,
-        
-        /* Previous month new cases and deaths to calculate % change */
-        LAG(new_monthly_cases) OVER (PARTITION BY county_fips_code
-          ORDER BY reporting_month ) AS lag_1m_new_monthly_cases,
-        LAG(new_monthly_deaths) OVER (PARTITION BY county_fips_code
-          ORDER BY reporting_month ) AS lag_1m_new_monthly_deaths
+
+        /* Data quality issues */
+        CASE
+          WHEN a.new_monthly_cases < 0
+            THEN 0
+          ELSE a.new_monthly_cases
+        END AS new_monthly_cases,
+        CASE
+          WHEN a.new_monthly_deaths < 0
+            THEN 0
+          ELSE a.new_monthly_deaths
+        END AS new_monthly_deaths
       
       FROM
         aggregate_cases AS a
@@ -143,11 +146,9 @@ SELECT
   a.state_fips_code,
   a.cumulative_cases,
   a.new_monthly_cases,
-  a.lag_1m_new_monthly_cases,
   
   a.cumulative_deaths,
   a.new_monthly_deaths,
-  a.lag_1m_new_monthly_deaths,
   
   b.county_geom,
   b.county_population,
