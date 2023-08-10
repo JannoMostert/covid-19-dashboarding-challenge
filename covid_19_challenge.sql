@@ -1,5 +1,9 @@
-/* Transform County Population Info */
+CREATE OR REPLACE TABLE `covid19_challenge.dashboard_table`
+PARTITION BY reporting_month
+CLUSTER BY county_fips_code
+AS
 WITH
+/* Transform County Population Info */
   county_population_analysis AS
     (
       SELECT
@@ -26,7 +30,7 @@ WITH
       ON a.geo_id = b.geo_id
         INNER JOIN `bigquery-public-data.geo_us_boundaries.states` AS c
         ON b.state_fips_code = c.state_fips_code
-      WHERE b.county_fips_code = '36047'
+      --WHERE b.county_fips_code = '36047'
   ),
   complete_county_pop_info AS
     (
@@ -61,9 +65,8 @@ WITH
       
       FROM
         `bigquery-public-data.covid19_usafacts.summary`
-      WHERE
-        county_fips_code = '36047'
-      --AND DATE BETWEEN '2020-11-30' AND '2020-12-31'
+      --WHERE
+        --county_fips_code = '36047'
   ),
   aggregate_cases AS
     (
@@ -84,9 +87,10 @@ WITH
       
       FROM
         latest_record_month AS a
-          /* Determine new daily cases by joining previous day onto current day */
+        /* Determine new daily cases by joining previous day onto current day */
         INNER JOIN latest_record_month AS b
                    ON a.rn = (b.rn - 1)
+                      AND a.county_fips_code = b.county_fips_code
       GROUP BY
         1,
         2,
@@ -129,7 +133,7 @@ WITH
         `bigquery-public-data.covid19_aha.hospital_beds` AS a
         INNER JOIN `bigquery-public-data.covid19_aha.staffing` AS b
       ON a.county_fips_code = b.county_fips_code
-      WHERE a.county_fips_code = '36047'
+      --WHERE a.county_fips_code = '36047'
   )
 SELECT
   a.reporting_month,
@@ -162,7 +166,4 @@ FROM
   INNER JOIN complete_county_med_info AS c
     ON a.county_fips_code = c.county_fips_code
 WHERE a.reporting_month > '2020-03-31'
-ORDER BY
-  reporting_month DESC
-LIMIT 1000
 ;
