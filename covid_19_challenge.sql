@@ -219,7 +219,10 @@ SELECT
   num_airborne_infection_isolation_rooms,
   infection_isolation_rooms_per_1000_people,
   PERCENT_RANK() OVER (PARTITION BY reporting_month 
-    ORDER BY infection_isolation_rooms_per_1000_people ASC) AS percentile_infection_isolation_rooms_per_1000_people
+    ORDER BY infection_isolation_rooms_per_1000_people ASC) AS percentile_infection_isolation_rooms_per_1000_people,
+
+  PERCENT_RANK() OVER (PARTITION BY reporting_month 
+    ORDER BY (county_elderly_population/county_population) ASC) AS percentile_elderly_perc_of_population
 
 FROM per_thousand_metrics
 ;
