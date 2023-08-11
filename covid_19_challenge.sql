@@ -144,11 +144,14 @@ SELECT
   a.county_name,
   b.state_name,
   a.state_fips_code,
+
   a.cumulative_cases,
   a.new_monthly_cases,
+  ((1000/b.county_population) * a.new_monthly_cases) AS new_monthly_cases_per_1000_people,
   
   a.cumulative_deaths,
   a.new_monthly_deaths,
+  ((1000/b.county_population) * a.new_monthly_deaths) AS new_monthly_deaths_per_1000_people,
   
   b.county_geom,
   b.county_population,
@@ -157,8 +160,14 @@ SELECT
   b.county_elderly_population,
 
   c.total_hospital_beds,
+  ((1000/b.county_population) * c.total_hospital_beds) AS hospital_beds_per_1000_people,
+
   c.registered_nurses,
-  c.num_airborne_infection_isolation_rooms
+  ((1000/b.county_population) * c.registered_nurses) AS registered_nurses_per_1000_people,
+
+  c.num_airborne_infection_isolation_rooms,
+  ((1000/b.county_population) * 
+    c.num_airborne_infection_isolation_rooms) AS infection_isolation_rooms_per_1000_people
 
 FROM
   complete_county_case_info AS a
