@@ -129,14 +129,16 @@ WITH
         a.state_name,
         a.county_fips_code,
         a.county_name,
-        a.total_hospital_beds,
-        a.num_airborne_infection_isolation_rooms,
-        b.registered_nurses_ft AS registered_nurses,
+        /* Remove duplicate data entries in the sources tables */
+        MAX(a.total_hospital_beds)                    AS total_hospital_beds,
+        MAX(a.num_airborne_infection_isolation_rooms) AS num_airborne_infection_isolation_rooms,
+        MAX(b.registered_nurses_ft)                   AS registered_nurses,
       FROM
         `bigquery-public-data.covid19_aha.hospital_beds` AS a
         INNER JOIN `bigquery-public-data.covid19_aha.staffing` AS b
       ON a.county_fips_code = b.county_fips_code
-      --WHERE a.county_fips_code = '36047'
+      WHERE a.county_fips_code = '16001'
+      GROUP BY 1, 2, 3
   )
 SELECT
   a.reporting_month,
