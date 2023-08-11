@@ -139,43 +139,87 @@ WITH
       ON a.county_fips_code = b.county_fips_code
       --WHERE a.county_fips_code = '16001'
       GROUP BY 1, 2, 3
+  ),
+  per_thousand_metrics AS 
+    (
+      SELECT
+        a.reporting_month,
+        a.county_fips_code,
+        a.county_name,
+        b.state_name,
+        a.state_fips_code,
+
+        a.cumulative_cases,
+        a.new_monthly_cases,
+        ((1000/b.county_population) * a.new_monthly_cases) AS new_monthly_cases_per_1000_people,
+        
+        a.cumulative_deaths,
+        a.new_monthly_deaths,
+        ((1000/b.county_population) * a.new_monthly_deaths) AS new_monthly_deaths_per_1000_people,
+        
+        b.county_geom,
+        b.county_population,
+        b.median_age,
+        b.median_income,
+        b.county_elderly_population,
+
+        c.total_hospital_beds,
+        ((1000/b.county_population) * c.total_hospital_beds) AS hospital_beds_per_1000_people,
+
+        c.registered_nurses,
+        ((1000/b.county_population) * c.registered_nurses) AS registered_nurses_per_1000_people,
+
+        c.num_airborne_infection_isolation_rooms,
+        ((1000/b.county_population) * 
+          c.num_airborne_infection_isolation_rooms) AS infection_isolation_rooms_per_1000_people
+
+      FROM
+        complete_county_case_info AS a
+        INNER JOIN complete_county_pop_info AS b
+                  ON a.county_fips_code = b.county_fips_code
+        INNER JOIN complete_county_med_info AS c
+          ON a.county_fips_code = c.county_fips_code
+      WHERE a.reporting_month > '2020-03-31'
   )
 SELECT
-  a.reporting_month,
-  a.county_fips_code,
-  a.county_name,
-  b.state_name,
-  a.state_fips_code,
+  reporting_month,
+  county_fips_code,
+  county_name,
+  state_name,
+  state_fips_code,
 
-  a.cumulative_cases,
-  a.new_monthly_cases,
-  ((1000/b.county_population) * a.new_monthly_cases) AS new_monthly_cases_per_1000_people,
-  
-  a.cumulative_deaths,
-  a.new_monthly_deaths,
-  ((1000/b.county_population) * a.new_monthly_deaths) AS new_monthly_deaths_per_1000_people,
-  
-  b.county_geom,
-  b.county_population,
-  b.median_age,
-  b.median_income,
-  b.county_elderly_population,
+  cumulative_cases,
+  new_monthly_cases,
+  new_monthly_cases_per_1000_people,
+  PERCENT_RANK() OVER (PARTITION BY reporting_month 
+    ORDER BY new_monthly_cases_per_1000_people ASC) AS percentile_new_monthly_cases_per_1000_people,
 
-  c.total_hospital_beds,
-  ((1000/b.county_population) * c.total_hospital_beds) AS hospital_beds_per_1000_people,
+  cumulative_deaths,
+  new_monthly_deaths,
+  new_monthly_deaths_per_1000_people,
+  PERCENT_RANK() OVER (PARTITION BY reporting_month 
+    ORDER BY new_monthly_deaths_per_1000_people ASC) AS percentile_new_monthly_deaths_per_1000_people,
 
-  c.registered_nurses,
-  ((1000/b.county_population) * c.registered_nurses) AS registered_nurses_per_1000_people,
+  county_geom,
+  county_population,
+  median_age,
+  median_income,
+  county_elderly_population,
 
-  c.num_airborne_infection_isolation_rooms,
-  ((1000/b.county_population) * 
-    c.num_airborne_infection_isolation_rooms) AS infection_isolation_rooms_per_1000_people
+  total_hospital_beds,
+  hospital_beds_per_1000_people,
+  PERCENT_RANK() OVER (PARTITION BY reporting_month 
+    ORDER BY hospital_beds_per_1000_people ASC) AS percentile_hospital_beds_per_1000_people,
 
-FROM
-  complete_county_case_info AS a
-  INNER JOIN complete_county_pop_info AS b
-             ON a.county_fips_code = b.county_fips_code
-  INNER JOIN complete_county_med_info AS c
-    ON a.county_fips_code = c.county_fips_code
-WHERE a.reporting_month > '2020-03-31'
+  registered_nurses,
+  registered_nurses_per_1000_people,
+  PERCENT_RANK() OVER (PARTITION BY reporting_month 
+    ORDER BY registered_nurses_per_1000_people ASC) AS percentile_registered_nurses_per_1000_people,
+
+  num_airborne_infection_isolation_rooms,
+  infection_isolation_rooms_per_1000_people,
+  PERCENT_RANK() OVER (PARTITION BY reporting_month 
+    ORDER BY infection_isolation_rooms_per_1000_people ASC) AS percentile_infection_isolation_rooms_per_1000_people
+
+FROM per_thousand_metrics
 ;
