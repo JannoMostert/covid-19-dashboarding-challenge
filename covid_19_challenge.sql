@@ -137,7 +137,7 @@ WITH
         `bigquery-public-data.covid19_aha.hospital_beds` AS a
         INNER JOIN `bigquery-public-data.covid19_aha.staffing` AS b
       ON a.county_fips_code = b.county_fips_code
-      WHERE a.county_fips_code = '16001'
+      --WHERE a.county_fips_code = '16001'
       GROUP BY 1, 2, 3
   )
 SELECT
